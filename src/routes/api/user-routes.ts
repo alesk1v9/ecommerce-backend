@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { User } from "../../models/index";
 import { UserProps } from "../../types/user";
 import { isAdmin, verifyToken } from "../../middleware/authMiddleware";
+import sendEmail from "../../utils/sendEmail";
 
 const router = Router();
 
@@ -37,8 +38,23 @@ router.get("/:id", isAdmin, async (req: Request, res: Response) => {
 router.delete("/:id", verifyToken || isAdmin ,async (req: Request, res: Response) => {
     try {
         const userId = req.params.id;
-        const deleted = await User.destroy({ where: { id: userId } });
 
+        // Find the user by ID
+        const user: UserProps | null = await User.findByPk(userId);
+        if (!user) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        // Send an email to the user before deletion
+                const emailSubject = "Account Deletion Confirmation";
+                const emailContent = `
+                    <h1>User Deleted</h1>
+                    <p>Your account has been successfully deleted.</p>
+                `;
+                await sendEmail(user.email, emailSubject, emailContent);
+        // Delete the user
+        const deleted = await User.destroy({ where: { id: userId } });
+        // Check if the user was deleted
         if (deleted) {
             res.status(204).send();
         } else {
