@@ -1,10 +1,9 @@
 import { Router, Request, Response } from "express";
 import { isAdmin, verifyToken } from "../../middleware/authMiddleware";
-import { Order } from "../../models/index";
+import { Order, Product, OrderItem } from "../../models/index";
 import { OrderProps } from "../../types/order";
 import { User } from "../../models/index";
-import Product from "../../models/Product";
-import OrderItem from "../../models/OrderItem";
+import sendEmail from "../../utils/sendEmail";
 
 const router = Router();
 
@@ -67,6 +66,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 router.post("/", verifyToken, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.id;
+        const userEmail = (req as any).user.email;
         const { products } = req.body;
         let totalPrice = 0;
 
@@ -113,6 +113,10 @@ router.post("/", verifyToken, async (req: Request, res: Response) => {
         });
 
         res.status(201).json(fullOrder);
+        // Send confirmation email
+            const emailSubject = "Order Confirmation";
+            const emailText = `Your order has been placed successfully. Order ID: ${newOrder.id}. Total Price: $${totalPrice}.`;
+            await sendEmail(userEmail, emailSubject, emailText);
 
     } catch (error) {
         console.error("Error creating order:", error);
@@ -146,13 +150,35 @@ router.put("/:id", isAdmin, async (req: Request, res: Response) => {
 router.delete("/:id", isAdmin, async (req: Request, res: Response) => {
     try {
         const orderId = req.params.id;
+        const order = await Order.findByPk(orderId);
+        const orderItems = await OrderItem.findAll({ where: { orderId } });
+
+        if (!order) {
+            res.status(404).json({ error: "Order not found" });
+            return;
+        }
+
+        for (const orderItem of orderItems) {
+            const product = await Product.findByPk(orderItem.productId);
+            if (product) {
+                product.stock += orderItem.quantity;
+                await product.save();
+            }
+        }
+
+        await OrderItem.destroy({ where: { orderId } });
         const deleted = await Order.destroy({ where: { id: orderId } });
 
-        if (deleted) {
-            res.status(204).send();
-        } else {
-            res.status(404).json({ error: "Order not found" });
+        res.status(200).json({ message: "Order Deleted" ,deleted });
+
+        // Send cancellation email
+        const user = await User.findByPk(order.userId);
+        if (user) {
+            const emailSubject = "Order Cancellation";
+            const emailText = `Your order with ID ${orderId} has been cancelled.`;
+            await sendEmail(user.email, emailSubject, emailText);
         }
+
     } catch (error) {
         console.error("Error deleting order:", error);
         res.status(500).json({ error: "Internal server error" });

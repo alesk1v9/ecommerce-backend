@@ -6,7 +6,7 @@ dotenv.config(); // Load environment variables from a .env file into process.env
 
 const secret = process.env.JWT_SECRET!; 
 // ! is used to tell TS that the value is not null or undefined
-const expiration = '2h';
+const expiration = '24h';
 
 export function signToken(user: PayloadProps): string {
     const payload = { 

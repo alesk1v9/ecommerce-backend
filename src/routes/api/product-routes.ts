@@ -54,7 +54,7 @@ router.delete("/:id", isAdmin, async (req: Request, res: Response) => {
 router.put("/:id", isAdmin, async (req: Request, res: Response) => {
     try {
         const productId = req.params.id;
-        const { name, description, price, stock } = req.body;
+        const { name, description, price, stock, categoryId } = req.body;
 
         // Find the product by ID
         const product = await Product.findByPk(productId);
@@ -65,6 +65,7 @@ router.put("/:id", isAdmin, async (req: Request, res: Response) => {
             product.description = description;
             product.price = price;
             product.stock = stock;
+            product.categoryId = categoryId;
 
             await product.save();
             res.status(200).json(product);

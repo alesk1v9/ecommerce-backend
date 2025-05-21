@@ -3,6 +3,7 @@ import { User } from "../../models/index";
 import { UserProps, UserInstance } from "../../types/user";
 import { signToken } from "../../utils/auth";
 import { PayloadProps } from "../../types/payload";
+import sendEmail from "../../utils/sendEmail";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -15,6 +16,12 @@ router.post("/register", async (req: Request, res: Response) => {
     try {
         const newUser: UserProps = await User.create({ name, email, password, role });
         res.status(201).json(newUser);
+
+        // Send a welcome email
+        const subject = "Welcome to Our Service";
+        const text = `Hello ${name},\n\nThank you for registering with us! We're glad to have you on board.\n\nBest regards,\nThe Team`;
+        await sendEmail(email, subject, text);
+
     } catch (error) {
         console.error("Error creating user:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -41,6 +48,12 @@ router.post("/login", async (req: Request, res: Response) => {
         };
         const token = signToken(payload);
             res.json({ token, user });
+
+        // Send a login notification email
+        const subject = "Login Notification";
+        const text = `Hello ${user.name},\n\nYou have successfully logged in to your account.\n\nBest regards,\nThe Team`;
+        await sendEmail(user.email, subject, text);
+
     } catch (error) {
         console.error("Error finding user:", error);
         res.status(500).json({ error, message: "Server Error" });

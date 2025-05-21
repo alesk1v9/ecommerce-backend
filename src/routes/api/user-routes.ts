@@ -1,11 +1,12 @@
 import { Router, Request, Response } from "express";
 import { User } from "../../models/index";
 import { UserProps } from "../../types/user";
+import { isAdmin, verifyToken } from "../../middleware/authMiddleware";
 
 const router = Router();
 
 // Get all users
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", isAdmin, async (req: Request, res: Response) => {
     try {
         const users: UserProps[] = await User.findAll();
         res.status(200).json(users);
@@ -16,7 +17,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 // Get a user by ID
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", isAdmin, async (req: Request, res: Response) => {
     try {
         const userId = req.params.id;
         const user: UserProps | null = await User.findByPk(userId);
@@ -33,7 +34,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 // Delete a user by ID
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", verifyToken || isAdmin ,async (req: Request, res: Response) => {
     try {
         const userId = req.params.id;
         const deleted = await User.destroy({ where: { id: userId } });
@@ -50,7 +51,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 // Update a user by ID
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", verifyToken || isAdmin, async (req: Request, res: Response) => {
     try {
         const userId = req.params.id;
         const { name, email, password, role } = req.body;
