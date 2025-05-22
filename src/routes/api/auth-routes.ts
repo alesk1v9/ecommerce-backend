@@ -49,11 +49,6 @@ router.post("/login", async (req: Request, res: Response) => {
         const token = signToken(payload);
             res.json({ token, user });
 
-        // Send a login notification email
-        const subject = "Login Notification";
-        const text = `Hello ${user.name},\n\nYou have successfully logged in to your account.\n\nBest regards,\nThe Team`;
-        await sendEmail(user.email, subject, text);
-
     } catch (error) {
         console.error("Error finding user:", error);
         res.status(500).json({ error, message: "Server Error" });
