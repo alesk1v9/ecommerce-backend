@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { User } from "../../models/index";
+import { User, Order } from "../../models/index";
 import { UserProps } from "../../types/user";
 import { isAdmin, verifyToken } from "../../middleware/authMiddleware";
 import sendEmail from "../../utils/sendEmail";
@@ -9,7 +9,13 @@ const router = Router();
 // Get all users
 router.get("/", isAdmin, async (req: Request, res: Response) => {
     try {
-        const users: UserProps[] = await User.findAll();
+        const users: UserProps[] = await User.findAll({
+            include: [
+                {
+                    model: Order,
+                } 
+            ],
+        });
         res.status(200).json(users);
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -21,7 +27,15 @@ router.get("/", isAdmin, async (req: Request, res: Response) => {
 router.get("/:id", isAdmin, async (req: Request, res: Response) => {
     try {
         const userId = req.params.id;
-        const user: UserProps | null = await User.findByPk(userId);
+        const user: UserProps | null = await User.findByPk(userId, 
+            {
+                include: [
+                    {
+                        model: Order,
+                    }
+                ],
+            }
+        );
 
         if (user) {
             res.status(200).json(user);
