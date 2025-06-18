@@ -1,8 +1,11 @@
 import express from 'express';
 import sequelize from './src/config/connection';
 import routes from './src/routes';
+import webhookRoutes from './src/routes/api/webhook';
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use("/api/webhooks", webhookRoutes);
 
 // Middleware to parse JSON requests
 app.use(express.json());

@@ -4,8 +4,9 @@ import { verifyToken } from "../../middleware/authMiddleware";
 import { Product, Order, OrderItem, User } from "../../models/index";
 import { OrderProps } from "../../types/order";
 import sendEmail from "../../utils/sendEmail";
+import dotenv from 'dotenv';
 
-
+dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_KEY || "");
 const router = Router();
 
@@ -85,6 +86,9 @@ try {
         mode: "payment",
         success_url: "http://localhost:3000/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url: "http://localhost:3000/cancel",
+        metadata: {
+          orderId: newOrder.id!.toString(),
+        },
       });
 
       res.status(200).json({ url: session.url });
