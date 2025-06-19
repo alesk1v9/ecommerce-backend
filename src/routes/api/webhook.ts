@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from "express";
 import Stripe from "stripe";
-import { Order } from "../../models/index";
+import { Order, Product } from "../../models/index";
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -36,9 +36,29 @@ switch (event.type) {
 
   case 'checkout.session.expired': {
     const session = event.data.object;
-
     const orderId = session.metadata?.orderId;
+
     if (orderId) {
+      const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: Product,
+          through: { attributes: ['quantity'] }
+        }
+      ]
+    });
+
+    // Type assertion to inform TypeScript that 'order' includes 'Products'
+    const orderWithProducts = order as Order & { Products: (Product & { OrderItem: { quantity: number } })[] };
+
+    if (orderWithProducts && orderWithProducts.Products) {
+      // 2. Loop over products and restore stock
+      for (const product of orderWithProducts.Products) {
+        const quantity = product.OrderItem.quantity;
+        product.stock += quantity;
+        await product.save();
+      }
+
       await Order.update(
         { status: 'cancelled' },
         { where: { id: orderId } }
@@ -46,6 +66,7 @@ switch (event.type) {
     }
 
     break;
+  }
   }
 
   default:
